@@ -12,13 +12,13 @@ import {
   agentRoutes,
   adminRoutes,
   notFoundRoute,
-} from "../routes/Routes";
+} from "./routes/Routes";
 
-import PrivateRoute from "../routes/PrivateRoute";
-import AgentRoute from "../routes/AgentRoute";
-import AdminRoute from "../routes/AdminRoute";
-import Loader from "../components/Loader/Loader";
-import { getUser } from "../redux/slices/authSlice";
+import PrivateRoute from "./routes/PrivateRoute";
+import AgentRoute from "./routes/AgentRoute";
+import AdminRoute from "./routes/AdminRoute";
+import Loader from "./components/Loader/Loader";
+import { getUser } from "./redux/slices/authSlice";
 
 const App = () => {
   const dispatch = useDispatch();

@@ -235,9 +235,6 @@ const Header = ({ activeHeading, allProperties = [] }) => {
           ></div>
         )}
       </header>
-
-      {/* Dynamic Spacer */}
-      <div style={{ paddingTop: spacerHeight }} />
     </>
   );
 };

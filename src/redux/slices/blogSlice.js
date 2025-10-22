@@ -1,6 +1,6 @@
 // src/redux/slices/blogSlice.js
 import { createSlice, createAsyncThunk } from "@reduxjs/toolkit";
-import api from "../../src/api/axios";
+import api from "../../api/axios";
 
 /* ======================================================
    🧠 ASYNC THUNKS — BLOG CRUD + FETCH BY ID

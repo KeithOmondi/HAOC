@@ -1,5 +1,5 @@
 import { createSlice, createAsyncThunk } from "@reduxjs/toolkit";
-import api from "../../src/api/axios";
+import api from "../../api/axios";
 
 /* ============================================================
    🏡 CREATE PROPERTY
