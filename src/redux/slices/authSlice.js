@@ -10,17 +10,15 @@ export const saveAccessToken = (token) => {
   try {
     localStorage.setItem("accessToken", token);
     return token;
-  } catch (e) {
-    console.error("Failed to save access token:", e);
-    return null;
+  } catch {
+    return null; // Silent fail in production
   }
 };
 
 const getAccessToken = () => {
   try {
     return localStorage.getItem("accessToken");
-  } catch (e) {
-    console.error("Failed to read access token:", e);
+  } catch {
     return null;
   }
 };
@@ -28,8 +26,8 @@ const getAccessToken = () => {
 const removeAccessToken = () => {
   try {
     localStorage.removeItem("accessToken");
-  } catch (e) {
-    console.error("Failed to remove access token:", e);
+  } catch {
+    /* silently ignore */
   }
 };
 
@@ -41,8 +39,7 @@ const userFromStorage = (() => {
     return localStorage.getItem("user")
       ? JSON.parse(localStorage.getItem("user"))
       : null;
-  } catch (e) {
-    console.error("Failed to parse stored user:", e);
+  } catch {
     return null;
   }
 })();
@@ -54,7 +51,6 @@ const initialState = {
   error: null,
   success: null,
   users: [],
-  // 🔹 Always start false; backend will confirm authentication later
   isAuthenticated: false,
 };
 
@@ -62,7 +58,7 @@ const initialState = {
    🔁 Async Thunks
 ========================================================= */
 
-// Register
+// Auth-related
 export const register = createAsyncThunk("auth/register", async (credentials, thunkAPI) => {
   try {
     const { data } = await api.post("/auth/register", credentials);
@@ -72,7 +68,6 @@ export const register = createAsyncThunk("auth/register", async (credentials, th
   }
 });
 
-// Verify OTP
 export const verifyOTP = createAsyncThunk("auth/verifyOTP", async (payload, thunkAPI) => {
   try {
     const { data } = await api.post("/auth/verify-otp", payload);
@@ -82,7 +77,6 @@ export const verifyOTP = createAsyncThunk("auth/verifyOTP", async (payload, thun
   }
 });
 
-// Resend OTP
 export const resendOTP = createAsyncThunk("auth/resendOTP", async (payload, thunkAPI) => {
   try {
     const { data } = await api.post("/auth/otp/resend", payload);
@@ -92,7 +86,6 @@ export const resendOTP = createAsyncThunk("auth/resendOTP", async (payload, thun
   }
 });
 
-// Login
 export const loginUser = createAsyncThunk("auth/loginUser", async (credentials, thunkAPI) => {
   try {
     const { data } = await api.post("/auth/login", credentials);
@@ -102,7 +95,6 @@ export const loginUser = createAsyncThunk("auth/loginUser", async (credentials, 
   }
 });
 
-// Refresh token
 export const refreshAccessToken = createAsyncThunk("auth/refreshAccessToken", async (_, thunkAPI) => {
   try {
     const { data } = await api.post("/auth/refresh-token");
@@ -113,7 +105,6 @@ export const refreshAccessToken = createAsyncThunk("auth/refreshAccessToken", as
   }
 });
 
-// Get current user
 export const getUser = createAsyncThunk("auth/getUser", async (_, thunkAPI) => {
   try {
     const { data } = await api.get("/auth/me");
@@ -124,7 +115,7 @@ export const getUser = createAsyncThunk("auth/getUser", async (_, thunkAPI) => {
   }
 });
 
-// Forgot password
+// Password Management
 export const forgotPassword = createAsyncThunk("auth/forgotPassword", async (payload, thunkAPI) => {
   try {
     const { data } = await api.post("/auth/password/forgot", payload);
@@ -134,7 +125,6 @@ export const forgotPassword = createAsyncThunk("auth/forgotPassword", async (pay
   }
 });
 
-// Reset password
 export const resetPassword = createAsyncThunk("auth/resetPassword", async (payload, thunkAPI) => {
   try {
     const { data } = await api.put(`/auth/password/reset/${payload.token}`, payload);
@@ -144,7 +134,6 @@ export const resetPassword = createAsyncThunk("auth/resetPassword", async (paylo
   }
 });
 
-// Update password
 export const updatePassword = createAsyncThunk("auth/updatePassword", async (payload, thunkAPI) => {
   try {
     const { data } = await api.put("/auth/password/update", payload);
@@ -158,19 +147,19 @@ export const updatePassword = createAsyncThunk("auth/updatePassword", async (pay
 export const logoutUser = createAsyncThunk("auth/logoutUser", async () => {
   try {
     await api.post("/auth/logout");
-  } catch (e) {
-    console.warn("Logout request failed (continuing to clear client state):", e);
+  } catch {
+    /* ignore logout error */
   } finally {
     removeAccessToken();
     try {
       localStorage.removeItem("user");
-    } catch (e) {
-      console.error("Failed to remove user from localStorage:", e);
+    } catch {
+      /* ignore storage error */
     }
   }
 });
 
-// Admin: Fetch all users
+// Admin actions
 export const fetchAllUsers = createAsyncThunk("auth/fetchAllUsers", async (_, thunkAPI) => {
   try {
     const { data } = await api.get("/user/all");
@@ -180,20 +169,15 @@ export const fetchAllUsers = createAsyncThunk("auth/fetchAllUsers", async (_, th
   }
 });
 
-// Admin: Update user
-export const updateUserById = createAsyncThunk(
-  "auth/updateUserById",
-  async ({ id, updates }, thunkAPI) => {
-    try {
-      const { data } = await api.put(`/admin/users/${id}`, updates);
-      return data.user;
-    } catch (err) {
-      return thunkAPI.rejectWithValue(err.response?.data?.message || "Failed to update user");
-    }
+export const updateUserById = createAsyncThunk("auth/updateUserById", async ({ id, updates }, thunkAPI) => {
+  try {
+    const { data } = await api.put(`/admin/users/${id}`, updates);
+    return data.user;
+  } catch (err) {
+    return thunkAPI.rejectWithValue(err.response?.data?.message || "Failed to update user");
   }
-);
+});
 
-// Admin: Delete user
 export const deleteUserById = createAsyncThunk("auth/deleteUserById", async (id, thunkAPI) => {
   try {
     await api.delete(`/admin/users/${id}`);
@@ -203,7 +187,6 @@ export const deleteUserById = createAsyncThunk("auth/deleteUserById", async (id,
   }
 });
 
-// Admin: Register new admin
 export const registerNewAdmin = createAsyncThunk("auth/registerNewAdmin", async (payload, thunkAPI) => {
   try {
     const { data } = await api.post("/admin/register", payload);
@@ -242,7 +225,6 @@ const authSlice = createSlice({
   initialState,
   reducers: {
     clearAuthState: (state) => {
-      // Only clear messages, not login state
       state.loading = false;
       state.error = null;
       state.success = null;
@@ -257,8 +239,8 @@ const authSlice = createSlice({
       removeAccessToken();
       try {
         localStorage.removeItem("user");
-      } catch (e) {
-        console.error("Failed to remove user from localStorage:", e);
+      } catch {
+        /* ignore */
       }
     },
   },
@@ -276,6 +258,7 @@ const authSlice = createSlice({
           : action.payload?.message || action.error?.message || defaultMsg;
     };
 
+    // Auto-handle all thunks
     [
       register,
       verifyOTP,
@@ -297,6 +280,7 @@ const authSlice = createSlice({
       builder.addCase(thunk.rejected, (state, action) => rejectedHandler(state, action));
     });
 
+    // Success Handlers
     builder
       .addCase(register.fulfilled, (state, action) => {
         state.loading = false;
@@ -309,19 +293,16 @@ const authSlice = createSlice({
       .addCase(loginUser.fulfilled, (state, action) => {
         state.loading = false;
         state.success = action.payload?.message || "Login successful";
-
-        removeAccessToken(); // ensure old tokens are cleared
+        removeAccessToken();
         if (action.payload?.accessToken) {
           state.accessToken = saveAccessToken(action.payload.accessToken);
         }
-
         state.user = action.payload?.user || null;
         state.isAuthenticated = !!state.user;
-
         try {
           if (state.user) localStorage.setItem("user", JSON.stringify(state.user));
-        } catch (e) {
-          console.error("Failed to store user in localStorage:", e);
+        } catch {
+          /* ignore */
         }
       })
       .addCase(refreshAccessToken.fulfilled, (state, action) => {
@@ -336,8 +317,8 @@ const authSlice = createSlice({
         state.isAuthenticated = !!state.user;
         try {
           if (state.user) localStorage.setItem("user", JSON.stringify(state.user));
-        } catch (e) {
-          console.error("Failed to store user in localStorage:", e);
+        } catch {
+          /* ignore */
         }
       })
       .addCase(logoutUser.fulfilled, (state) => {
@@ -358,8 +339,8 @@ const authSlice = createSlice({
         state.success = "Profile updated successfully";
         try {
           if (state.user) localStorage.setItem("user", JSON.stringify(state.user));
-        } catch (e) {
-          console.error("Failed to store user in localStorage:", e);
+        } catch {
+          /* ignore */
         }
       })
       .addCase(fetchAllUsers.fulfilled, (state, action) => {

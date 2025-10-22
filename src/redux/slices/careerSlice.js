@@ -11,11 +11,12 @@ export const fetchCareers = createAsyncThunk(
   async (_, thunkAPI) => {
     try {
       const { data } = await api.get("/careers/get");
-      console.log("CAREERS API RESPONSE:", data);
       // Return depending on your backend structure
       return data.data || data.careers || data;
     } catch (err) {
-      return thunkAPI.rejectWithValue(err.response?.data?.message || err.message);
+      return thunkAPI.rejectWithValue(
+        err.response?.data?.message || err.message
+      );
     }
   }
 );
@@ -28,7 +29,9 @@ export const createCareer = createAsyncThunk(
       const { data } = await api.post("/careers/create", careerData);
       return data.data || data;
     } catch (err) {
-      return thunkAPI.rejectWithValue(err.response?.data?.message || err.message);
+      return thunkAPI.rejectWithValue(
+        err.response?.data?.message || err.message
+      );
     }
   }
 );
@@ -41,7 +44,9 @@ export const updateCareer = createAsyncThunk(
       const { data } = await api.put(`/careers/update?id=${id}`, updates);
       return data.data || data;
     } catch (err) {
-      return thunkAPI.rejectWithValue(err.response?.data?.message || err.message);
+      return thunkAPI.rejectWithValue(
+        err.response?.data?.message || err.message
+      );
     }
   }
 );
@@ -54,7 +59,9 @@ export const deleteCareer = createAsyncThunk(
       await api.delete(`/careers/delete?id=${id}`);
       return id;
     } catch (err) {
-      return thunkAPI.rejectWithValue(err.response?.data?.message || err.message);
+      return thunkAPI.rejectWithValue(
+        err.response?.data?.message || err.message
+      );
     }
   }
 );
