@@ -6,7 +6,7 @@ import axios from "axios";
 // Axios Instance
 // ==========================
 const api = axios.create({
-  baseURL: "https://haoc.vercel.app/api/v1",
+  baseURL: "https://haocc.onrender.com/api/v1",
   withCredentials: true, // send HttpOnly refresh cookies
 });
 
@@ -58,7 +58,7 @@ api.interceptors.response.use(
 
         // Call refresh token endpoint (using standard axios instance)
         const { data } = await axios.post(
-          "https://haoc.vercel.app/api/v1/auth/refresh-token",
+          "https://haocc.onrender.com/api/v1/auth/refresh-token",
           {},
           { withCredentials: true }
         );
