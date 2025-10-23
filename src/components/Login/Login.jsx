@@ -1,138 +1,186 @@
+// src/pages/auth/LoginPage.js
 import React, { useState, useEffect } from "react";
+import { Link, useNavigate } from "react-router-dom";
 import { useDispatch, useSelector } from "react-redux";
-import { useNavigate } from "react-router-dom";
 import { toast } from "react-toastify";
-import { Mail, Lock, LogIn, Loader2 } from "lucide-react";
-import { loginUser, clearAuthState } from "../../redux/slices/authSlice";
+import { clearAuthState, loginUser } from "../../redux/slices/authSlice";
 
-const Login = () => {
+const LoginPage = () => {
+  const [formData, setFormData] = useState({
+    email: "",
+    password: "",
+  });
+  const [remember, setRemember] = useState(false);
+
   const dispatch = useDispatch();
   const navigate = useNavigate();
 
-  const { loading, error, isAuthenticated, user } = useSelector(
+  const { loading, user, accessToken, error, success } = useSelector(
     (state) => state.auth
   );
 
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-
-  // 🔹 Clear auth state ONLY once when the component first mounts
+  // Restore remembered email
   useEffect(() => {
-    dispatch(clearAuthState());
-    // eslint-disable-next-line
+    const savedEmail = localStorage.getItem("rememberEmail");
+    if (savedEmail) {
+      setFormData((prev) => ({ ...prev, email: savedEmail }));
+      setRemember(true);
+    }
   }, []);
 
-  // 🔹 Submit login form
-  const handleSubmit = (e) => {
-    e.preventDefault();
+  // Handle login success + redirects
+  useEffect(() => {
+    if (!user || !accessToken) return;
 
-    if (!email || !password) {
-      toast.error("Please enter both email and password");
+    toast.success(success || "Login successful ✅");
+
+    // Role-based redirects
+    const rolePaths = {
+      Admin: "/admin/dashboard",
+      Agent: "/agent/dashboard",
+      User: "/dashboard",
+    };
+
+    navigate(rolePaths[user.role] || "/dashboard", { replace: true });
+
+    // Reset transient state after redirect
+    setTimeout(() => dispatch(clearAuthState()), 500);
+  }, [user, accessToken, success, navigate, dispatch]);
+
+  // Handle errors
+  useEffect(() => {
+    if (error) {
+      toast.error(error);
+      setFormData((prev) => ({ ...prev, password: "" })); // clear password
+      dispatch(clearAuthState());
+    }
+  }, [error, dispatch]);
+
+  const handleChange = (e) => {
+    setFormData((prev) => ({ ...prev, [e.target.name]: e.target.value }));
+  };
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    const { email, password } = formData;
+
+    if (!email.trim() || !password.trim()) {
+      toast.error("Email and password cannot be empty.");
       return;
     }
 
-    dispatch(loginUser({ email, password }));
+    remember
+      ? localStorage.setItem("rememberEmail", email)
+      : localStorage.removeItem("rememberEmail");
+
+    try {
+      await dispatch(loginUser({ email, password })).unwrap();
+      // Navigation handled by useEffect
+    } catch (err) {
+      toast.error(err || "Login failed");
+    }
   };
 
-  // 🔹 Role-based redirect after successful login
-  useEffect(() => {
-    if (isAuthenticated && user) {
-      toast.success(`Welcome back, ${user.name || user.email}!`);
-
-      const redirectTimer = setTimeout(() => {
-        let redirectPath = "/user/dashboard";
-
-        if (user.role === "Admin") redirectPath = "/admin/dashboard";
-        else if (user.role === "Agent") redirectPath = "/agent/dashboard";
-
-        navigate(redirectPath, { replace: true });
-      }, 800);
-
-      return () => clearTimeout(redirectTimer);
-    }
-  }, [isAuthenticated, user, navigate]);
-
-  // 🔹 Handle login errors
-  useEffect(() => {
-    if (error) toast.error(error);
-  }, [error]);
-
   return (
-    <div className="flex items-center justify-center min-h-screen bg-gray-100 p-4">
-      <div className="w-full max-w-md p-8 sm:p-10 bg-white rounded-3xl shadow-2xl border border-gray-200">
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-gray-50 to-blue-100 p-4 sm:p-6 lg:p-8">
+      <div className="max-w-md w-full bg-white shadow-2xl rounded-2xl p-8 sm:p-10 space-y-7 border border-gray-100">
         {/* Header */}
-        <div className="text-center mb-8">
-          <LogIn size={40} className="text-blue-600 mx-auto mb-3" />
-          <h2 className="text-3xl font-extrabold text-gray-900">
-            Sign in to your account
+        <div className="text-center">
+          <h2 className="text-4xl font-extrabold text-gray-900 leading-tight">
+            Welcome Back! 👋
           </h2>
+          <p className="mt-2 text-lg text-gray-600">Sign in to your account</p>
         </div>
 
         {/* Form */}
-        <form onSubmit={handleSubmit} className="space-y-6">
+        <form className="space-y-6" onSubmit={handleSubmit}>
           {/* Email */}
           <div>
-            <label
-              htmlFor="email"
-              className="block text-sm font-medium text-gray-700 mb-1"
-            >
+            <label className="block text-sm font-semibold text-gray-800 mb-1">
               Email Address
             </label>
-            <div className="relative">
-              <Mail
-                size={20}
-                className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400"
-              />
-              <input
-                type="email"
-                id="email"
-                placeholder="you@example.com"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                className="w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500 transition shadow-sm"
-                required
-              />
-            </div>
+            <input
+              type="email"
+              name="email"
+              value={formData.email}
+              onChange={handleChange}
+              required
+              placeholder="you@example.com"
+              className="mt-1 block w-full px-5 py-3 border border-gray-300 rounded-lg shadow-sm focus:ring-blue-700 focus:border-blue-700 text-gray-900 placeholder-gray-400 text-base"
+              disabled={loading}
+            />
           </div>
 
           {/* Password */}
           <div>
-            <label
-              htmlFor="password"
-              className="block text-sm font-medium text-gray-700 mb-1"
-            >
+            <label className="block text-sm font-semibold text-gray-800 mb-1">
               Password
             </label>
-            <div className="relative">
-              <Lock
-                size={20}
-                className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400"
-              />
-              <input
-                type="password"
-                id="password"
-                placeholder="Enter your password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                className="w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500 transition shadow-sm"
-                required
-              />
-            </div>
+            <input
+              type="password"
+              name="password"
+              value={formData.password}
+              onChange={handleChange}
+              required
+              placeholder="••••••••"
+              className="mt-1 block w-full px-5 py-3 border border-gray-300 rounded-lg shadow-sm focus:ring-blue-700 focus:border-blue-700 text-gray-900 placeholder-gray-400 text-base"
+              disabled={loading}
+            />
           </div>
 
-          {/* Submit */}
+          {/* Remember me + Forgot password */}
+          <div className="flex items-center justify-between text-sm">
+            <label className="flex items-center text-gray-700 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={remember}
+                onChange={(e) => setRemember(e.target.checked)}
+                className="h-4 w-4 text-blue-800 border-gray-300 rounded focus:ring-blue-700"
+                disabled={loading}
+              />
+              <span className="ml-2 select-none">Remember me</span>
+            </label>
+            <Link
+              to="/forgot-password"
+              className="font-medium text-blue-800 hover:text-blue-900 hover:underline"
+            >
+              Forgot password?
+            </Link>
+          </div>
+
+          {/* Submit button */}
           <button
             type="submit"
             disabled={loading}
-            className={`w-full flex items-center justify-center gap-2 py-3 rounded-xl text-white font-bold text-lg shadow-lg transition duration-200 transform hover:scale-[1.005] ${
+            className={`w-full py-3 px-4 rounded-lg font-bold text-white shadow-md transition duration-300 ease-in-out ${
               loading
-                ? "bg-blue-400 cursor-not-allowed opacity-80"
-                : "bg-blue-600 hover:bg-blue-700"
+                ? "bg-blue-600 cursor-not-allowed flex items-center justify-center"
+                : "bg-blue-800 hover:bg-blue-900 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-700"
             }`}
           >
             {loading ? (
               <>
-                <Loader2 size={20} className="animate-spin" /> Logging in...
+                <svg
+                  className="animate-spin -ml-1 mr-3 h-5 w-5 text-white"
+                  xmlns="http://www.w3.org/2000/svg"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                >
+                  <circle
+                    className="opacity-25"
+                    cx="12"
+                    cy="12"
+                    r="10"
+                    stroke="currentColor"
+                    strokeWidth="4"
+                  />
+                  <path
+                    className="opacity-75"
+                    fill="currentColor"
+                    d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                  />
+                </svg>
+                Signing in...
               </>
             ) : (
               "Sign In"
@@ -141,26 +189,18 @@ const Login = () => {
         </form>
 
         {/* Footer */}
-        <div className="text-sm text-center mt-6 space-y-2">
-          <p className="text-gray-500">
-            Don’t have an account?{" "}
-            <a
-              href="/register"
-              className="text-blue-600 hover:text-blue-800 font-medium hover:underline"
-            >
-              Register here
-            </a>
-          </p>
-          <a
-            href="/forgot-password"
-            className="text-xs text-gray-500 hover:text-blue-600 hover:underline block"
+        <p className="text-sm text-center text-gray-600 mt-6">
+          Don&apos;t have an account?{" "}
+          <Link
+            to="/register"
+            className="text-blue-800 font-semibold hover:underline hover:text-blue-900"
           >
-            Forgot Password?
-          </a>
-        </div>
+            Sign up
+          </Link>
+        </p>
       </div>
     </div>
   );
 };
 
-export default Login;
+export default LoginPage;

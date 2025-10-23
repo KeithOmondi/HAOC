@@ -1,21 +1,20 @@
+// src/routes/AdminRoute.js
 import React from "react";
 import { useSelector } from "react-redux";
 import { Navigate } from "react-router-dom";
 
 const AdminRoute = ({ children }) => {
-  const { accessToken, user } = useSelector((state) => state.auth);
+  const accessToken = useSelector((state) => state.auth.accessToken);
+  const user = useSelector((state) => state.auth.user);
 
-  // 1️⃣ Not logged in
-  if (!accessToken || !user) {
+  if (!accessToken) {
     return <Navigate to="/login" replace />;
   }
 
-  // 2️⃣ Logged in but not an Admin
-  if (user.role !== "Admin") {
-    return <Navigate to="/unauthorized" replace />;
+  if (user?.role !== "Admin") {
+    return <Navigate to="/login" replace />;
   }
 
-  // 3️⃣ Authorized Admin
   return <>{children}</>;
 };
 

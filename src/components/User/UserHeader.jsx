@@ -2,16 +2,16 @@
 import React from 'react';
 import { useSelector, useDispatch } from 'react-redux';
 import { Link } from 'react-router-dom';
-import { logout } from '../../redux/slices/authSlice'; // Assuming you have a logout action
 import { BiUser, BiLogOut } from 'react-icons/bi';
 import { toast } from 'react-toastify';
+import { logoutUser } from '../../redux/slices/authSlice';
 
 const UserHeader = () => {
     const user = useSelector((state) => state.auth.user);
     const dispatch = useDispatch();
 
     const handleLogout = () => {
-        dispatch(logout());
+        dispatch(logoutUser());
         toast.success("Logged out successfully!");
     };
 
